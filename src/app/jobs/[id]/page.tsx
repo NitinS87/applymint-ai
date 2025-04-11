@@ -20,7 +20,6 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { MainLayout } from "@/components/layout/main-layout";
 import { ROUTES } from "@/lib/constants";
 import { formatDate, formatRelativeDate, formatSalaryRange } from "@/lib/utils";
 import { trackJobApply } from "@/app/jobs/[id]/actions";
@@ -40,8 +39,9 @@ export default async function JobDetailsPage({
 }: {
   params: { id: string };
 }) {
+  const { id } = params;
   // In a real app, we would fetch the job data from the database
-  const job = mockJobs.find((job) => job.id === params.id);
+  const job = mockJobs.find((job) => job.id === id);
 
   if (!job) {
     notFound();
