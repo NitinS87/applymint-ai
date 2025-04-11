@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { mockJobs } from "@/app/jobs/mock-data";
 
@@ -10,20 +10,20 @@ import { mockJobs } from "@/app/jobs/mock-data";
  * This would log the interaction and then redirect the user to the application page.
  */
 export async function trackJobApply(jobId: string, formData: FormData) {
-  const { userId } = auth();
-  
+  const { userId } = await auth();
+
   try {
     // Find the job in our mock data for demonstration
     // In a real app, this would use Prisma to find the job in the database
     const job = mockJobs.find((job) => job.id === jobId);
-    
+
     if (!job) {
       throw new Error("Job not found");
     }
-    
+
     // In a real app, this would create a record in the database
-    console.log(`User ${userId || 'anonymous'} clicked apply for job ${jobId}`);
-    
+    console.log(`User ${userId || "anonymous"} clicked apply for job ${jobId}`);
+
     // For logged-in users, we would track this in their application history
     if (userId) {
       // Example of what would happen in a real app with Prisma
@@ -48,7 +48,7 @@ export async function trackJobApply(jobId: string, formData: FormData) {
       });
       */
     }
-    
+
     // Redirect the user to the external application page
     redirect(job.applicationLink);
   } catch (error) {

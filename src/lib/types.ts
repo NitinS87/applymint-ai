@@ -13,6 +13,7 @@ export type User = {
   applications?: Application[];
   jobAlerts?: JobAlert[];
   preferences?: UserPreference | null;
+  savedJobs?: SavedJob[];
 };
 
 export type UserPreference = {
@@ -97,7 +98,7 @@ export type Job = {
   postedDate: Date;
   domains: Domain[];
   subdomains: Subdomain[];
-  skills: JobSkill[];
+  skills?: JobSkill[];
   applications: Application[];
   isActive: boolean;
   createdAt: Date;
@@ -159,6 +160,16 @@ export type JobAlert = {
   remoteOnly: boolean;
   frequency: string;
   isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type SavedJob = {
+  id: string;
+  userId: string;
+  user: User;
+  jobId: string;
+  job: Job;
   createdAt: Date;
   updatedAt: Date;
 };

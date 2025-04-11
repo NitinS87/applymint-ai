@@ -25,24 +25,26 @@ export function Header() {
   ];
 
   return (
-    <header className="border-b bg-background">
+    <header className="bg-background border-b">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-6">
           <Link href={ROUTES.HOME} className="flex items-center gap-2">
-            <span className="text-xl font-bold text-primary">ApplyMint</span>
+            <span className="text-primary text-xl font-bold">ApplyMint</span>
             <span className="text-xl font-semibold">AI</span>
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex">
-            <ul className="flex items-center gap-6">
+            <ul className="flex items-center gap-6 list-none">
               {navItems.map((item) => (
                 <li key={item.href}>
                   <Link
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-primary",
-                      pathname === item.href ? "text-primary" : "text-muted-foreground"
+                      "hover:text-primary flex items-center gap-1.5 text-sm font-medium transition-colors",
+                      pathname === item.href
+                        ? "text-primary"
+                        : "text-muted-foreground",
                     )}
                   >
                     <item.icon className="h-4 w-4" />
@@ -99,17 +101,13 @@ export function Header() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 bg-background md:hidden">
+        <div className="bg-background fixed inset-0 z-50 md:hidden">
           <div className="container flex h-16 items-center justify-between px-4">
             <Link href={ROUTES.HOME} className="flex items-center gap-2">
-              <span className="text-xl font-bold text-primary">ApplyMint</span>
+              <span className="text-primary text-xl font-bold">ApplyMint</span>
               <span className="text-xl font-semibold">AI</span>
             </Link>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleMobileMenu}
-            >
+            <Button variant="ghost" size="icon" onClick={toggleMobileMenu}>
               <X className="h-5 w-5" />
             </Button>
           </div>
@@ -121,8 +119,10 @@ export function Header() {
                     href={item.href}
                     onClick={toggleMobileMenu}
                     className={cn(
-                      "flex items-center gap-2 text-lg font-medium transition-colors hover:text-primary",
-                      pathname === item.href ? "text-primary" : "text-muted-foreground"
+                      "hover:text-primary flex items-center gap-2 text-lg font-medium transition-colors",
+                      pathname === item.href
+                        ? "text-primary"
+                        : "text-muted-foreground",
                     )}
                   >
                     <item.icon className="h-5 w-5" />
