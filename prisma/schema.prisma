@@ -1,0 +1,198 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for storing user profile information
+model User {
+  id            String         @id @default(cuid())
+  clerkId       String         @unique
+  email         String         @unique
+  firstName     String?
+  lastName      String?
+  profileImage  String?
+  resume        String?        // URL to stored resume
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  skills        UserSkill[]
+  applications  Application[]
+  jobAlerts     JobAlert[]
+  preferences   UserPreference?
+}
+
+// User preferences for better job matching
+model UserPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredDomains String[] // Array of preferred domains/industries
+  preferredLocations String[]
+  minSalary       Int?
+  maxSalary       Int?
+  jobTypes        String[] // Full-time, part-time, contract, internship
+  remotePreference String? // Remote, hybrid, on-site
+  experienceLevel  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Company information
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  logo        String?  // URL to company logo
+  website     String?
+  description String?  @db.Text
+  industry    String[]
+  size        String?  // Small, Medium, Large, Enterprise
+  location    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  jobs        Job[]
+}
+
+// Domain/Industry for classification
+model Domain {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String?      @db.Text
+  subdomains  Subdomain[]
+  jobs        Job[]        @relation("JobDomains")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+// Subdomain/Specialization
+model Subdomain {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  domainId    String
+  domain      Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  jobs        Job[]    @relation("JobSubdomains")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([name, domainId])
+}
+
+// Skills for jobs and users
+model Skill {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  category    String?     // Technical, Soft Skill, etc.
+  jobs        JobSkill[]
+  users       UserSkill[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+// Job listings
+model Job {
+  id                 String       @id @default(cuid())
+  title              String
+  description        String       @db.Text
+  responsibilities   String?      @db.Text
+  requirements       String?      @db.Text
+  preferredSkills    String?      @db.Text
+  companyId          String
+  company            Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  location           String?
+  locationType       String       // Remote, Hybrid, On-site
+  salary             Int?
+  salaryMax          Int?
+  salaryCurrency     String       @default("USD")
+  salaryPeriod       String       @default("YEARLY") // YEARLY, MONTHLY, HOURLY
+  jobType            String       // Full-time, Part-time, Contract, Internship
+  experienceLevel    String       // Entry, Mid, Senior
+  applicationLink    String       // URL to the official job application page
+  applicationDeadline DateTime?
+  postedDate         DateTime     @default(now())
+  domains            Domain[]     @relation("JobDomains")
+  subdomains         Subdomain[]  @relation("JobSubdomains")
+  skills             JobSkill[]
+  applications       Application[]
+  isActive           Boolean      @default(true)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  viewCount          Int          @default(0)
+  clickCount         Int          @default(0)
+  imageUrl           String?      // URL to the generated Instagram image
+  qrCodeUrl          String?      // URL to the QR code image
+}
+
+// Job skills (many-to-many relationship between Jobs and Skills)
+model JobSkill {
+  id        String   @id @default(cuid())
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  skillId   String
+  skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@unique([jobId, skillId])
+}
+
+// User skills (many-to-many relationship between Users and Skills)
+model UserSkill {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillId     String
+  skill       Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  proficiency String?  // Beginner, Intermediate, Advanced, Expert
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  @@unique([userId, skillId])
+}
+
+// Job applications (tracking applications from users)
+model Application {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId       String
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  status      String   @default("CLICKED") // CLICKED, APPLIED, INTERVIEWING, OFFERED, REJECTED
+  notes       String?  @db.Text
+  clickedAt   DateTime @default(now())
+  statusUpdatedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  @@unique([userId, jobId])
+}
+
+// Job alerts for users
+model JobAlert {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  keywords        String[]
+  domains         String[]
+  locations       String[]
+  jobTypes        String[] // Full-time, Part-time, Contract, Internship
+  minSalary       Int?
+  maxSalary       Int?
+  experienceLevel String?
+  remoteOnly      Boolean  @default(false)
+  frequency       String   @default("DAILY") // DAILY, WEEKLY, IMMEDIATE
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+}
