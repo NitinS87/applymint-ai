@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
 import { JobCard } from "@/components/jobs/job-card";
-import { getSavedJobs, unsaveJob } from "./actions";
+import { getSavedJobs, unsaveJob } from "../../../lib/services/saved-job-actions";
 import { ROUTES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";

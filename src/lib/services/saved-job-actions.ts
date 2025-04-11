@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { mockJobs } from "@/app/jobs/mock-data";
+import { mockJobs } from "@/lib/services/mock-data";
 import { ROUTES } from "@/lib/constants";
 
 // In-memory store for saved jobs in development (would use database in production)

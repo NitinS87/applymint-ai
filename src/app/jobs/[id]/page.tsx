@@ -22,11 +22,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import { ROUTES } from "@/lib/constants";
 import { formatDate, formatRelativeDate, formatSalaryRange } from "@/lib/utils";
-import { trackJobApply } from "@/app/jobs/[id]/actions";
-
-// Importing mock data for demonstration
-// In a real app, we would fetch this from the database
-import { mockJobs } from "@/app/jobs/mock-data";
+import { trackJobApply } from "@/lib/services/job-actions";
+import { getJobById, incrementJobViewCount, getSimilarJobs } from "@/lib/services/job-service";
 
 export const metadata = {
   title: "Job Details | ApplyMint AI",
@@ -34,22 +31,38 @@ export const metadata = {
     "View detailed job information and apply directly on the company website.",
 };
 
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const job = await getJobById(params.id);
+
+  if (!job) {
+    return metadata;
+  }
+
+  return {
+    title: `${job.title} at ${job.company.name} | ApplyMint AI`,
+    description: `Apply for ${job.title} position at ${job.company.name}. ${job.description.substring(0, 150)}...`,
+  };
+}
+
 export default async function JobDetailsPage({
   params,
 }: {
   params: { id: string };
 }) {
   const { id } = params;
-  // In a real app, we would fetch the job data from the database
-  const job = mockJobs.find((job) => job.id === id);
+  
+  // Fetch job details from database
+  const job = await getJobById(id);
 
   if (!job) {
     notFound();
   }
 
-  // Generate dynamic metadata for SEO
-  metadata.title = `${job.title} at ${job.company.name} | ApplyMint AI`;
-  metadata.description = `Apply for ${job.title} position at ${job.company.name}. ${job.description.substring(0, 150)}...`;
+  // Increment view count
+  await incrementJobViewCount(id);
+
+  // Get similar jobs
+  const similarJobs = await getSimilarJobs(id, 3);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -168,11 +181,6 @@ export default async function JobDetailsPage({
             <h2 className="mb-4 text-xl font-semibold">Description</h2>
             <div className="prose dark:prose-invert max-w-none">
               <p>{job.description}</p>
-              <p>
-                We are looking for a talented professional to join our team. The
-                ideal candidate will have experience in the field and be
-                passionate about delivering high-quality work.
-              </p>
             </div>
           </div>
 
@@ -185,11 +193,6 @@ export default async function JobDetailsPage({
                   {job.responsibilities.split("\n").map((item, index) => (
                     <li key={index}>{item}</li>
                   ))}
-                  <li>Lead and deliver projects from concept to completion</li>
-                  <li>Collaborate with cross-functional teams</li>
-                  <li>Stay updated with industry trends and technologies</li>
-                  <li>Provide mentorship to junior team members</li>
-                  <li>Participate in code reviews and technical discussions</li>
                 </ul>
               </div>
             </div>
@@ -204,30 +207,27 @@ export default async function JobDetailsPage({
                   {job.requirements.split("\n").map((item, index) => (
                     <li key={index}>{item}</li>
                   ))}
-                  <li>3+ years of relevant industry experience</li>
-                  <li>Bachelor's degree or equivalent practical experience</li>
-                  <li>Strong problem-solving and analytical skills</li>
-                  <li>Excellent communication and teamwork abilities</li>
-                  <li>Proficiency in relevant tools and technologies</li>
                 </ul>
               </div>
             </div>
           )}
 
           {/* Required Skills */}
-          <div className="mb-8">
-            <h2 className="mb-4 text-xl font-semibold">Skills</h2>
-            <div className="flex flex-wrap gap-2">
-              {job.skills.map((jobSkill) => (
-                <Badge
-                  key={jobSkill.id}
-                  variant={jobSkill.isPrimary ? "default" : "outline"}
-                >
-                  {jobSkill.skill.name}
-                </Badge>
-              ))}
+          {job.skills.length > 0 && (
+            <div className="mb-8">
+              <h2 className="mb-4 text-xl font-semibold">Skills</h2>
+              <div className="flex flex-wrap gap-2">
+                {job.skills.map((jobSkill) => (
+                  <Badge
+                    key={jobSkill.id}
+                    variant={jobSkill.isPrimary ? "default" : "outline"}
+                  >
+                    {jobSkill.skill.name}
+                  </Badge>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Preferred Skills */}
           {job.preferredSkills && (
@@ -238,10 +238,6 @@ export default async function JobDetailsPage({
                   {job.preferredSkills.split("\n").map((item, index) => (
                     <li key={index}>{item}</li>
                   ))}
-                  <li>Experience with cloud platforms (AWS, Azure, GCP)</li>
-                  <li>Knowledge of agile development methodologies</li>
-                  <li>Understanding of CI/CD pipelines</li>
-                  <li>Previous experience in a similar industry</li>
                 </ul>
               </div>
             </div>
@@ -254,11 +250,12 @@ export default async function JobDetailsPage({
             </h2>
             <div className="prose dark:prose-invert max-w-none">
               <p>{job.company.description}</p>
-              <p>
-                {job.company.name} is a leading company in{" "}
-                {job.company.industry.join(", ")}. We are committed to
-                innovation and excellence in all aspects of our business.
-              </p>
+              {job.company.industry && (
+                <p>
+                  {job.company.name} is a leading company in{" "}
+                  {job.company.industry.join(", ")}. 
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -315,7 +312,7 @@ export default async function JobDetailsPage({
                 <div>
                   <span className="font-medium">Industry: </span>
                   <span className="text-muted-foreground">
-                    {job.company.industry.join(", ")}
+                    {job.company.industry?.join(", ") || "Not specified"}
                   </span>
                 </div>
                 {job.company.size && (
@@ -352,9 +349,34 @@ export default async function JobDetailsPage({
 
             <div className="bg-card rounded-lg border p-6">
               <h2 className="mb-4 text-lg font-semibold">Similar Jobs</h2>
-              <p className="text-muted-foreground text-sm">
-                Coming soon. We'll show similar job opportunities here.
-              </p>
+              {similarJobs.length > 0 ? (
+                <div className="space-y-4">
+                  {similarJobs.map((similarJob) => (
+                    <a
+                      key={similarJob.id}
+                      href={ROUTES.JOB_DETAILS(similarJob.id)}
+                      className="block hover:bg-accent rounded-md p-3 transition-colors"
+                    >
+                      <h3 className="font-medium">{similarJob.title}</h3>
+                      <p className="text-muted-foreground text-sm">
+                        {similarJob.company.name}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        <Badge variant="outline" className="text-xs">
+                          {similarJob.jobType}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {similarJob.experienceLevel}
+                        </Badge>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  No similar jobs found at this time.
+                </p>
+              )}
             </div>
           </div>
         </div>
