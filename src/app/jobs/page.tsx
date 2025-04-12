@@ -118,7 +118,7 @@ export default async function JobsPage({
       : "desc";
 
   // Fetch jobs with filters, pagination, and sorting
-  const { jobs: dbJobs, pagination } = await getJobs({
+  const jobsResult = await getJobs({
     page,
     pageSize,
     domain: domainFilter,
@@ -131,7 +131,8 @@ export default async function JobsPage({
     maxSalary,
     orderBy: sortBy,
     orderDirection: sortDir as "asc" | "desc",
-  });
+  }) as { jobs: Job[]; pagination: { total: number; pageCount: number; page: number; pageSize: number } };
+  const { jobs: dbJobs, pagination } = jobsResult;
 
   // Fetch domains and skills for the filter component
   const dbDomains = await getDomains();
