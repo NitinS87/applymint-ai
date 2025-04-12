@@ -2,16 +2,16 @@ import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 
 /**
- * Get all domains
+ * Get all domains with their subdomains
  */
 export async function getDomains() {
   try {
     const domains = await db.domain.findMany({
-      orderBy: {
-        name: "asc",
-      },
       include: {
         subdomains: true,
+      },
+      orderBy: {
+        name: "asc",
       },
     });
 
@@ -23,7 +23,7 @@ export async function getDomains() {
 }
 
 /**
- * Get a single domain by ID with its subdomains
+ * Get a domain by ID with its subdomains
  */
 export async function getDomainById(id: string) {
   try {
@@ -63,18 +63,38 @@ export async function getDomainByName(name: string) {
 /**
  * Create a new domain
  */
-export async function createDomain(data: Prisma.DomainCreateInput) {
+export async function createDomain(data: {
+  name: string;
+  description?: string;
+}) {
   try {
     const domain = await db.domain.create({
       data,
-      include: {
-        subdomains: true,
-      },
     });
 
     return domain;
   } catch (error) {
     console.error("Error creating domain:", error);
+    throw error;
+  }
+}
+
+/**
+ * Create a new subdomain
+ */
+export async function createSubdomain(data: {
+  name: string;
+  description?: string;
+  domainId: string;
+}) {
+  try {
+    const subdomain = await db.subdomain.create({
+      data,
+    });
+
+    return subdomain;
+  } catch (error) {
+    console.error("Error creating subdomain:", error);
     throw error;
   }
 }
@@ -148,6 +168,37 @@ export async function getPopularDomains(limit = 5) {
     return domains;
   } catch (error) {
     console.error("Error fetching popular domains:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get all domains with job counts
+ * Useful for displaying domain categories with the number of jobs in each
+ */
+export async function getDomainsWithJobCounts() {
+  try {
+    const domains = await db.domain.findMany({
+      include: {
+        _count: {
+          select: {
+            jobs: true,
+          },
+        },
+      },
+      orderBy: {
+        name: "asc",
+      },
+    });
+
+    return domains.map((domain) => ({
+      id: domain.id,
+      name: domain.name,
+      description: domain.description,
+      jobCount: domain._count.jobs,
+    }));
+  } catch (error) {
+    console.error("Error fetching domains with job counts:", error);
     throw error;
   }
 }

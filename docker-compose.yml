@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: applymint_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: applymint
+      POSTGRES_PASSWORD: applymint_password
+      POSTGRES_DB: applymint_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U applymint"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    name: applymint_postgres_data

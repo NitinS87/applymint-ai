@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 
 /**
  * Get all jobs with filtering, pagination, and sorting
+ * Support for admin features by including optional isActive filter
  */
 export async function getJobs({
   page = 1,
@@ -17,6 +18,8 @@ export async function getJobs({
   maxSalary,
   orderBy = "postedDate",
   orderDirection = "desc",
+  includeInactive = false,
+  limit,
 }: {
   page?: number;
   pageSize?: number;
@@ -30,14 +33,17 @@ export async function getJobs({
   maxSalary?: number;
   orderBy?: string;
   orderDirection?: "asc" | "desc";
+  includeInactive?: boolean;
+  limit?: number;
 }) {
-  // Calculate pagination
-  const skip = (page - 1) * pageSize;
-  const take = pageSize;
+  // Calculate pagination unless a limit is provided
+  const skip = limit ? undefined : (page - 1) * pageSize;
+  const take = limit || pageSize;
 
   // Build where clause based on filters
   const where: Prisma.JobWhereInput = {
-    isActive: true,
+    // Only include active jobs for regular users, include all for admins
+    isActive: includeInactive ? undefined : true,
   };
 
   // Add domain filter
@@ -140,10 +146,15 @@ export async function getJobs({
       include: {
         company: true,
         domains: true,
-        subdomains: true,
+        subdomains: { include: { domain: true } }, // updated
         skills: {
           include: {
             skill: true,
+          },
+        },
+        applications: {
+          select: {
+            id: true,
           },
         },
       },
@@ -151,6 +162,11 @@ export async function getJobs({
       take,
       orderBy: orderByClause,
     });
+
+    // If a limit was provided, don't return pagination info
+    if (limit) {
+      return jobs;
+    }
 
     return {
       jobs,
@@ -177,7 +193,7 @@ export async function getJobById(id: string) {
       include: {
         company: true,
         domains: true,
-        subdomains: true,
+        subdomains: { include: { domain: true } }, // updated
         skills: {
           include: {
             skill: true,
@@ -355,6 +371,7 @@ export async function getSimilarJobs(jobId: string, limit = 3) {
       include: {
         company: true,
         domains: true,
+        subdomains: { include: { domain: true } }, // updated
         skills: {
           include: {
             skill: true,

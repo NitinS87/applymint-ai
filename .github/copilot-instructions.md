@@ -43,15 +43,15 @@ src/
 ├── components/           # Reusable components
 │   ├── ui/               # UI components from shadcn
 │   ├── forms/            # Form components
-│   ├── jobs/             # Job-related components
-│   └── layout/           # Layout components
+│   └── jobs/             # Job-related components
 ├── lib/                  # Utility functions and shared code
 │   ├── utils.ts          # General utilities
 │   ├── types.ts          # TypeScript types
 │   └── constants.ts      # Constants used across the app
 ├── hooks/                # Custom React hooks
-├── prisma/               # Prisma schema and migrations
-└── public/               # Static assets
+└── middleware.ts         # Next.js middleware for authentication and routing
+prisma/                   # Prisma schema and migrations
+public/                   # Static assets
 ```
 
 ### Naming Conventions
@@ -72,17 +72,20 @@ import type { JobListing } from '@/lib/types'
 // Props type definition
 type JobCardProps = {
   job: JobListing
-  onApply: (jobId: string) => void
 }
 
 // Component definition
-export function JobCard({ job, onApply }: JobCardProps) {
+export function JobCard({ job }: JobCardProps) {
   // State hooks
   const [isExpanded, setIsExpanded] = useState(false)
   
   // Event handlers
   const handleApplyClick = () => {
-    onApply(job.id)
+    // Logic for applying to the job will go here
+  }
+  
+  const handleExpandClick = () => {
+    setIsExpanded(!isExpanded)
   }
   
   // Rendering
@@ -93,6 +96,115 @@ export function JobCard({ job, onApply }: JobCardProps) {
   )
 }
 ```
+
+### Form Implementation
+Use React Hook Form with shadcn/ui form components for building accessible and type-safe forms.
+
+#### Form Component Structure
+```tsx
+// Import statements
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
+import { Button } from "@/components/ui/button"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+
+// Define form schema with Zod
+const formSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+})
+
+// Component definition
+export function LoginForm() {
+  // 1. Define the form
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  })
+
+  // 2. Define submit handler
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    // Handle form submission
+    console.log(values)
+  }
+
+  // 3. Render the form
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input placeholder="you@example.com" {...field} />
+              </FormControl>
+              <FormDescription>
+                We'll never share your email with anyone else.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input type="password" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit">Login</Button>
+      </form>
+    </Form>
+  )
+}
+```
+
+#### Form Best Practices
+- Use the shadcn/ui Form components for consistent styling and accessibility
+- Define validation schema with Zod for type-safe validation
+- Leverage React Hook Form's validation and state management
+- Use FormMessage to display validation errors
+- Provide clear labels and descriptions for form fields
+- Group related form fields with appropriate spacing
+- Include loading states for form submission
+- Prevent multiple submissions with disabled state on submit button
+
+#### Form Components
+- `<Form>`: The main wrapper component that provides context for all form elements
+- `<FormField>`: Component for building controlled form fields
+- `<FormItem>`: Container for each form field with proper spacing
+- `<FormLabel>`: Accessible label for form inputs
+- `<FormControl>`: Wrapper for the actual input component
+- `<FormDescription>`: Additional description or hint text for fields
+- `<FormMessage>`: Displays validation errors
+
+#### Complex Form Patterns
+- For multi-step forms, use form state to track current step
+- For dynamic fields, use `useFieldArray` from React Hook Form
+- For conditional fields, use form watch to show/hide based on values
+- For file uploads, combine with Vercel Blob Storage or similar services
 
 ### CSS/Styling
 - Use Tailwind CSS utility classes directly in JSX
@@ -296,7 +408,7 @@ export const config = {
 import { auth } from '@clerk/nextjs/server'
 
 export default async function Page() {
-  const { userId } = auth()
+  const { userId } = await auth()
   
   if (!userId) {
     // Handle unauthenticated user
