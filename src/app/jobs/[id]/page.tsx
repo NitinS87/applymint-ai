@@ -23,19 +23,21 @@ import {
 import { ROUTES } from "@/lib/constants";
 import { formatDate, formatRelativeDate, formatSalaryRange } from "@/lib/utils";
 import { trackJobApply } from "@/lib/services/job-actions";
-import { getJobById, incrementJobViewCount, getSimilarJobs } from "@/lib/services/job-service";
-
-export const metadata = {
-  title: "Job Details | ApplyMint AI",
-  description:
-    "View detailed job information and apply directly on the company website.",
-};
+import {
+  getJobById,
+  incrementJobViewCount,
+  getSimilarJobs,
+} from "@/lib/services/job-service";
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const job = await getJobById(params.id);
 
   if (!job) {
-    return metadata;
+    return {
+      title: "Job Details | ApplyMint AI",
+      description:
+        "View detailed job information and apply directly on the company website.",
+    };
   }
 
   return {
@@ -47,10 +49,10 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
 export default async function JobDetailsPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = params;
-  
+  const { id } = await params;
+
   // Fetch job details from database
   const job = await getJobById(id);
 
@@ -253,7 +255,7 @@ export default async function JobDetailsPage({
               {job.company.industry && (
                 <p>
                   {job.company.name} is a leading company in{" "}
-                  {job.company.industry.join(", ")}. 
+                  {job.company.industry.join(", ")}.
                 </p>
               )}
             </div>
@@ -355,7 +357,7 @@ export default async function JobDetailsPage({
                     <a
                       key={similarJob.id}
                       href={ROUTES.JOB_DETAILS(similarJob.id)}
-                      className="block hover:bg-accent rounded-md p-3 transition-colors"
+                      className="hover:bg-accent block rounded-md p-3 transition-colors"
                     >
                       <h3 className="font-medium">{similarJob.title}</h3>
                       <p className="text-muted-foreground text-sm">
